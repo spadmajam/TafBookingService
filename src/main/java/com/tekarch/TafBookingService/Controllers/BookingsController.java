@@ -56,13 +56,6 @@ public class BookingsController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
-       /* if(bookings.isEmpty())
-        {
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.ok(bookings);
-    }
-*/
     }
 
     //Cancel a booking. Do not delete the record. Instead mark the status as cancelled

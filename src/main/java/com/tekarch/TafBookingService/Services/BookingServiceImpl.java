@@ -27,39 +27,6 @@ public class BookingServiceImpl implements BookingService {
     @Value("${tafdatastorems.url}")
     private String dataStoreMsUrl;
 
-    /*@Override
-    public BookingResponseDTO addBooking(BookingRequestDTO booking) {
-        String url = dataStoreMsUrl + "/bookings";
-
-        return restTemplate.postForObject(url, booking, BookingResponseDTO.class);
-       *//* if (response.getStatus().equals(201)) {
-            return response.getBody();
-        } else {
-            throw new RuntimeException("Failed to create booking");
-        }*//*
-    }*/
-
-  /*  @Override
-    public BookingResponseDTO addBooking(BookingRequestDTO booking) {
-        String url = dataStoreMsUrl + "/bookings";
-        String userUrl = dataStoreMsUrl + "/users/";
-        String flightUrl = dataStoreMsUrl + "/flights/";
-        ResponseEntity<UsersDTO> usersDTO = restTemplate.getForEntity(userUrl + booking.getUser_id(),UsersDTO.class);
-        ResponseEntity<FlightsDTO> flightsDTO = restTemplate.getForEntity(flightUrl+ booking.getFlight_id(),FlightsDTO.class);
-        BookingResponseDTO newbooking = new BookingResponseDTO();
-               newbooking.setUser_id(usersDTO.getBody().getId());
-               newbooking.setFlight_id(flightsDTO.getBody().getFlight_id());
-
-        //restTemplate.put(url,usersDTO);
-        //restTemplate.put(url,flightsDTO);
-
-        return restTemplate.postForObject(url, newbooking, BookingResponseDTO.class);
-
-    }*/
-
-
-    // updated one
-
     @Override
     public BookingResponseDTO addBooking(BookingRequestDTO booking) {
         String url = dataStoreMsUrl + "/bookings";
@@ -81,6 +48,15 @@ public class BookingServiceImpl implements BookingService {
             throw new RuntimeException("Flight not found for ID: " + booking.getFlight_id());
         }
 
+        // Adding validation  code
+        logger.info("Checking flight availability:: ");
+        String flightIdUrl = flightUrl+ booking.getFlight_id();
+        FlightsDTO flight = restTemplate.getForObject(flightIdUrl, FlightsDTO.class);
+        if(flight.getAvailable_seats()<=0)
+        {
+            throw new RuntimeException("Flight is fully booked. No seats available. ");
+        }
+
         // Prepare booking response
         BookingResponseDTO newBooking = new BookingResponseDTO();
         newBooking.setUser_id(usersDTO.getBody().getId());
@@ -93,14 +69,9 @@ public class BookingServiceImpl implements BookingService {
         return restTemplate.postForObject(url, newBooking, BookingResponseDTO.class);
     }
 
-
-
-
     @Override
     public BookingResponseDTO getBookingById(Long booking_id) {
         String url = dataStoreMsUrl + "/bookings/" + booking_id;
-
-        //return restTemplate.getForObject(url,BookingResponseDTO.class);
         ResponseEntity<BookingResponseDTO> response = restTemplate.getForEntity(url, BookingResponseDTO.class);
         if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
             return response.getBody();
@@ -110,9 +81,13 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public List<BookingResponseDTO> getAllUserBookings(@PathVariable Long user_id) {
-        String url = dataStoreMsUrl + "/bookings/user/"+ "id";
-        //ResponseEntity<BookingsDTO[]> response = restTemplate.getForEntity(url, BookingsDTO[].class);
+    public List<BookingResponseDTO> getAllUserBookings(Long userId) {
+        if (userId == null || userId <= 0) {
+            throw new IllegalArgumentException("Invalid user_id: " + userId);
+        }
+        String url = dataStoreMsUrl + "/bookings/user/"+ userId;
+        logger.info("Fetching bookings for userId: {}",userId);
+        logger.info("Request URL: {}", url);
         return Arrays.asList(restTemplate.getForObject(url, BookingResponseDTO[].class));
        /* if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
             return List.of(response.getBody());
@@ -126,51 +101,4 @@ public class BookingServiceImpl implements BookingService {
         String url = dataStoreMsUrl + "/bookings/" + booking_id;
         restTemplate.delete(url);
     }
-
-   /* //Get flight by ID
-    @Override
-    public BookingsDTO getFlightById(Long flight_id) {
-        String url = dataStoreMsUrl + "/flights/" + flight_id;
-        ResponseEntity<FlightsDTO> response = restTemplate.getForEntity(url, FlightsDTO.class);
-        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-            return response.getBody();
-        } else {
-            throw new FlightNotFoundException("Flight not found with ID: " + flight_id);
-        }
-    }
-
-    //Get all flights
-    public List<FlightsDTO> getAllFlights() {
-        String url = flightRepoUrl + "/flights";
-        ResponseEntity<FlightsDTO[]> response = restTemplate.getForEntity(url, FlightsDTO[].class);
-        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-            return List.of(response.getBody());
-        } else {
-            throw new RuntimeException("Failed to fetch flights");
-        }
-    }
-
-    // Create a new flight
-    public FlightsDTO addFlight(FlightsDTO flightDTO) {
-        String url = flightRepoUrl + "/flights";
-        ResponseEntity<FlightsDTO> response = restTemplate.postForEntity(url, flightDTO, FlightsDTO.class);
-        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-            return response.getBody();
-        } else {
-            throw new RuntimeException("Failed to create flight");
-        }
-    }
-
-    // Update an existing flight by ID
-    public FlightsDTO updateFlightById(Long flight_id, FlightsDTO flightDTO) {
-        String url = flightRepoUrl + "/flights/" + flight_id;
-        restTemplate.put(url, flightDTO);
-        return getFlightById(flight_id);
-    }
-
-    // Delete a flight by ID
-    public void deleteFlight(Long flight_id) {
-        String url = flightRepoUrl + "/flights/" + flight_id;
-        restTemplate.delete(url);
-    }*/
 }
